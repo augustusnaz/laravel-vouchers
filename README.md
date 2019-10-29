@@ -97,8 +97,8 @@ $attributes = [
     'reward_type' => Voucher::TYPE_PERCENTAGE,
     'is_disposable' => false, // all generated vouchers are by default disposable
     'quantity' => 2, // ignored if disposable
-    'allow' => [ $user1, $guest1 ],
-    'deny' => [ $user2 ],
+    'allow_models' => [ $user1, $guest1 ],
+    'deny_models' => [ $user2 ],
 ];
 $vouchers = Vouchers::create($product, 5, $attributes);
 
@@ -225,19 +225,19 @@ $product->createVouchers(2)
 
 ### Allowing or denying model instances
 
-Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow/deny attributes. 
+Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. 
 
 ```php
 $vouchers = Vouchers::create($product, 5, [
     'currency_code' => 'AUD',
     'reward_type' => Voucher::TYPE_MONETARY,
     'reward' => 10,
-    'allow' => [ $user1, $guest1 ],
-    'deny' => [ $user2 ],
+    'allow_models' => [ $user1, $guest1 ],
+    'deny_models' => [ $user2 ],
 ]);
 ```
 
-The `allow` and `deny` values can also be passed as attributes to the `Vouchers` facade and the `Voucher` class.
+The `allow_models` and `deny_models` values can also be passed as attributes to the `Vouchers` facade and the `Voucher` class.
 
 These attributes can be passed even after the voucher is created. You can also chain them;
 

@@ -22,7 +22,7 @@ class Voucher extends Model
         'expires_at',
         'reward_type', 'reward', 'currency_code',
         'quantity', 'is_disposable',
-        'can_redeem', 'cannot_redeem', 'allow', 'deny',
+        'can_redeem', 'cannot_redeem', 'allow_models', 'deny_models',
     ];
 
     /**
@@ -404,30 +404,38 @@ class Voucher extends Model
                 $voucher->code = Vouchers::generate(1)[0];
             }
 
-            if(isset($voucher->allow) && is_array($voucher->allow)){
-                $voucher->allow( $voucher->allow );
+            if(isset($voucher->allow_models)){
+                if(is_array($voucher->allow_models)){
+                    $voucher->allow( $voucher->allow_models );
+                }
+                unset($voucher->allow_models);
             }
-            unset($voucher->allow);
 
-            if(isset($voucher->deny) && is_array($voucher->deny)){
-                $voucher->deny( $voucher->deny );
+            if(isset($voucher->deny_models)){
+                if(is_array($voucher->deny_models)){
+                    $voucher->deny( $voucher->deny_models );
+                }
+                unset($voucher->deny_models);
             }
-            unset($voucher->deny);
 
         });
 
         // when a voucher is being updated
         static::updating(function(Voucher $voucher){
 
-            if(isset($voucher->allow) && is_array($voucher->allow)){
-                $voucher->allow( $voucher->allow );
+            if(isset($voucher->allow_models)){
+                if(is_array($voucher->allow_models)){
+                    $voucher->allow( $voucher->allow_models );
+                }
+                unset($voucher->allow_models);
             }
-            unset($voucher->allow);
 
-            if(isset($voucher->deny) && is_array($voucher->deny)){
-                $voucher->deny( $voucher->deny );
+            if(isset($voucher->deny_models)){
+                if(is_array($voucher->deny_models)){
+                    $voucher->deny( $voucher->deny_models );
+                }
+                unset($voucher->deny_models);
             }
-            unset($voucher->deny);
 
         });
 
