@@ -1,0 +1,51 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+use MOIREI\Vouchers\Models\Voucher;
+
+class CreateVouchersTable extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up()
+    {
+        $voucherTable = config('vouchers.table', 'vouchers');
+        $pivotTable = config('vouchers.pivot_table', 'user_voucher');
+
+        Schema::create($voucherTable, function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('code', 32)->unique();
+            $table->morphs('model');
+            $table->string('currency_code', 5)->nullable()->default( config('default_currency', 'USD') );
+            $table->string('reward_type', 12)->default( config('default_reward_type', Voucher::TYPE_PERCENTAGE) );
+            $table->double('reward', 10, 2)->nullable();
+            $table->integer('quantity')->nullable()->default(1);
+            $table->boolean('is_disposable')->default(true);
+            $table->text('can_redeem')->nullable();
+            $table->text('cannot_redeem')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create($pivotTable, function (Blueprint $table) use ($voucherTable) {
+            $table->bigIncrements('id');
+            $table->morphs('voucherable');
+            $table->unsignedBigInteger('voucher_id');
+            $table->timestamp('redeemed_at');
+
+            $table->foreign('voucher_id')->references('id')->on($voucherTable);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down()
+    {
+        Schema::dropIfExists(config('vouchers.table', 'vouchers'));
+        Schema::dropIfExists(config('vouchers.pivot_table', 'user_voucher'));
+    }
+}
