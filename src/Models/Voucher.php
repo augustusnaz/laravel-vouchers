@@ -235,10 +235,10 @@ class Voucher extends Model
     /**
      * The reward
      *
-     * @param string $reward
+     * @param double $reward
      * @return self
      */
-    public function reward($reward)
+    public function rewardValue($reward)
     {
         $this->reward = $reward;
 

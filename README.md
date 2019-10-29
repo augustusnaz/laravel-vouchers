@@ -244,7 +244,7 @@ These attributes can be passed even after the voucher is created. You can also c
 ```php
 $vouchers->currency('AUD')
     	 ->rewardType(Voucher::TYPE_OTHER)
-    	 ->reward(10)
+    	 ->rewardValue(10)
     	 ->allow([
              $user1,
          ])	
