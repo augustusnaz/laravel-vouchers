@@ -2,7 +2,7 @@
 
 
 
-Ecommerce voucher generator. It associates vouchers with any eloquent models and allows multiple models to own/redeem vouchers.
+An ecommerce voucher generator. It associates vouchers with any eloquent model and allows multiple models to own/redeem vouchers.
 
 This package is based on [beyondcode / **laravel-vouchers**](https://github.com/beyondcode/laravel-vouchers) and [zgabievi / **laravel-promocodes**](https://github.com/zgabievi/laravel-promocodes). Check them out, you might find them more appropriate for your application.
 
@@ -13,7 +13,7 @@ This package is based on [beyondcode / **laravel-vouchers**](https://github.com/
 * Can reuse Voucher
 * Polymorphic attachment to models i.e. Vouchers can be redeemed by any model. Useful for multi-auth or User/Guest architecture
 * Can specify allowed model instances that can redeem a Voucher
-* Can likewise exclude model instances from redeeming a Voucher
+* Can exclude model instances from redeeming a Voucher
 * Can store Voucher value as %, monetary (workable with multi-currency), or as other
 * Implements [moirei/**laravel-model-data**](https://github.com/augustusnaz/laravel-model-data)
 
@@ -70,9 +70,9 @@ php artisan vendor:publish --provider=MOIREI\Vouchers\VouchersServiceProvider --
 
 ## Usage
 
-This package allows you to create vouchers and associate them with a specific model. Vouchers are redeemable by any model with the `CanRedeemVouchers` trait. This means that a voucher would give *any* model access to *any* model with the `HasVouchers` trait.
+This package allows you to create vouchers and associate them with model instances. Vouchers are redeemable by any model with the `CanRedeemVouchers` trait. This means that a voucher would give *any* model access to *any* model with the `HasVouchers` trait.
 
-To setup, add `MOIREI\Vouchers\Traits\HasVouchers` trait to all your Eloquent model class that you want to be associated with vouchers. Then, add the `MOIREI\Vouchers\Traits\CanRedeemVouchers` trait to your the model class that you want to be able to redeem vouchers.
+To setup, add `MOIREI\Vouchers\Traits\HasVouchers` trait to all your Eloquent model class that you want to be associated with vouchers. Then, add the `MOIREI\Vouchers\Traits\CanRedeemVouchers` trait to the model class that you want to be able to redeem vouchers.
 
 
 
@@ -118,8 +118,8 @@ $product = Product::find(1);
 
 // Create a single Voucher model instance
 $voucher = Voucher::create([
-  	'model_id' => $product->getKey(),
-    'model_type' => $product->getMorphClass(),
+  	'model_id' => $product->getKey(), // required in this case
+    'model_type' => $product->getMorphClass(), // required in this case
     'expires_at' => today()->addDays(7),
 ]);
 ```
@@ -204,8 +204,8 @@ $from = $voucher->data('message.from');
 
 ### Vouchers with expiry dates
 
-You can also create vouchers that will only be available until a certain date. Expired vouchers cannot no longer be redeemed.
-The `expires_at` attribute accept a Carbon instance.
+You can also create vouchers that will only be available until a certain date. Expired vouchers cannot be redeemed.
+The `expires_at` attribute accepts a Carbon instance.
 
 ```php
 $product = Product::find(1);
@@ -250,7 +250,7 @@ $vouchers->currency('AUD')
          ])	
     	 ->deny([
              $guest1,
-         ])	
+         ]);
 ```
 
 
@@ -291,7 +291,7 @@ To retrieve the models that have redeemed a voucher, use
 $redeemers = $voucher->redeemers;
 ```
 
-This returns a Collection with mixed model types. The collection items are however not an Eloquent relationship. To access the underlying pivot relationship, use `related_redeemers`. This also returns a Collection.
+This returns a Collection with mixed model types. The collection items are not Eloquent relationships. To access the underlying pivot relationship, use `related_redeemers`. This also returns a Collection.
 
 
 
@@ -314,6 +314,13 @@ If model instances have been specifically allowed or denied ability to redeem vo
 ### Voucher expired
 
 If a user tries to redeem an expired voucher code, `MOIREI\Vouchers\Exceptions\VoucherExpired` is thrown.
+
+
+
+## Notes
+
+* The `allow_models` and `deny_models` attributes mentioned above are actually saved as `can_redeem` and `cannot_redeem` internally. They are mutated on boot creating or updating.
+* If you manage your resources with Nova, [Nova Multiselect]( https://novapackages.com/packages/optimistdigital/nova-multiselect-field ) can be used directly with the `can_redeem` and `cannot_redeem` attributes. Example code [here](doc/nova-resource-example.md).
 
 
 
