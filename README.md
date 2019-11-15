@@ -111,7 +111,7 @@ The Voucher model has a property `code` which contains the generated voucher cod
 
 ### Using the Voucher class
 
-In addition, you can also create vouchers by using the `createVouchers` method on the associated model:
+In addition, you can also create vouchers by using the `create` method on the Voucher model:
 
 ```php
 $product = Product::find(1);
@@ -291,15 +291,13 @@ To retrieve the models that have redeemed a voucher, use
 $redeemers = $voucher->redeemers;
 ```
 
-This returns an Collection of items with mixed model types. This is however not a model relationship. To access the underlying pivot relationship, use `related_redeemers`. This also returns a Collection.
+This returns a Collection with mixed model types. The collection items are however not an Eloquent relationship. To access the underlying pivot relationship, use `related_redeemers`. This also returns a Collection.
 
 
-
-## Handling 
 
 ## Handling Errors
 
-The `redeem` and `redeemVoucher` methods throw a couple of exceptions that you will want to catch and react to in your application:
+The `redeem` and `redeemVoucher` methods throw a couple of exceptions that you should catch and react to in your application:
 
 ### Voucher invalid
 
@@ -307,15 +305,15 @@ If a user tries to redeem an invalid code, the package will throw the following 
 
 ### Voucher already redeemed or exhausted
 
-All generated vouchers can be set for reuse. If a user tries to redeem a disposable voucher for the second time, or another user already redeemed this voucher, `MOIREI\Vouchers\Exceptions\VoucherAlreadyRedeemed::class` is thrown. If the reuse quantity has been exhausted, `MOIREI\Vouchers\Exceptions\VoucherAlreadyRedeemed::class` is thrown.
+All generated vouchers can be set for reuse. If a user tries to redeem a disposable voucher for the second time, or another user already redeemed this voucher, `MOIREI\Vouchers\Exceptions\VoucherAlreadyRedeemed` is thrown. If the reuse quantity has been exhausted, `MOIREI\Vouchers\Exceptions\VoucherRedeemsExhausted` is thrown.
 
 ### Not allowed
 
-If model instances has been specifically to allowed or denied ability to redeem voucher, `MOIREI\Vouchers\Exceptions\CannotRedeemVoucher::class` will be thrown accordingly.
+If model instances have been specifically allowed or denied ability to redeem voucher, `MOIREI\Vouchers\Exceptions\CannotRedeemVoucher` will be thrown accordingly.
 
 ### Voucher expired
 
-If a user tries to redeem an expired voucher code, the package will throw the following exception: `MOIREI\Vouchers\Exceptions\VoucherExpired`.
+If a user tries to redeem an expired voucher code, `MOIREI\Vouchers\Exceptions\VoucherExpired` is thrown.
 
 
 
