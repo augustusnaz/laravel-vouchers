@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class AddColumnsToVouchersTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $voucherTable = config('vouchers.table', 'vouchers');
+
+        Schema::table($voucherTable, function (Blueprint $table) {
+            $table->integer('quantity_used')->default(0);
+            $table->text('meta')->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $voucherTable = config('vouchers.table', 'vouchers');
+
+        Schema::table($voucherTable, function (Blueprint $table) {
+            $table->dropColumn('quantity_used');
+            $table->dropColumn('meta');
+        });
+    }
+}
