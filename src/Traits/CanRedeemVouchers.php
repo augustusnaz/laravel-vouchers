@@ -39,10 +39,8 @@ trait CanRedeemVouchers
             throw VoucherExpired::create($voucher);
         }
 
-        if (!is_null($voucher->quantity)) {
-            $voucher->quantity--;
-            $voucher->save();
-        }
+        $voucher->quantity_used++;
+        $voucher->save();
 
         $this->vouchers()->attach($voucher, [
             'redeemed_at' => now()

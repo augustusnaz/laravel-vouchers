@@ -6,6 +6,13 @@ An ecommerce voucher generator. It associates vouchers with any eloquent model a
 
 This package is based on [beyondcode / **laravel-vouchers**](https://github.com/beyondcode/laravel-vouchers) and [zgabievi / **laravel-promocodes**](https://github.com/zgabievi/laravel-promocodes). Check them out, you might find them more appropriate for your application.
 
+**[v1.1.0]**
+
+* Use local meta attribute for `model-data`
+* Keep original quantity  of *reusable vouchers*
+* Laravel 6 compatible
+
+
 
 
 ## Unique Features
@@ -105,7 +112,7 @@ $vouchers = Vouchers::create($product, 5, $attributes);
 
 ```
 
-The return value is an array containing all generated `Voucher` models. 
+The return value is an array containing all generated `Voucher` models.
 
 The Voucher model has a property `code` which contains the generated voucher code.
 
@@ -169,7 +176,7 @@ $vouchers = Vouchers::createReuse($product, 1, ['quantity' => 3]); // reuse twic
 
 ### Additional data
 
-This package uses `moirei/laravel-model-data` to associate arbitrary data with your vouchers. 
+This package uses `moirei/laravel-model-data` to associate arbitrary data with your vouchers.
 
 You can read/write data with
 
@@ -225,7 +232,7 @@ $product->createVouchers(2)
 
 ### Allowing or denying model instances
 
-Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. 
+Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes.
 
 ```php
 $vouchers = Vouchers::create($product, 5, [
@@ -247,7 +254,7 @@ $vouchers->currency('AUD')
     	 ->rewardValue(10)
     	 ->allow([
              $user1,
-         ])	
+         ])
     	 ->deny([
              $guest1,
          ]);

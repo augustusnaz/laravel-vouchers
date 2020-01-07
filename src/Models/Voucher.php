@@ -21,8 +21,9 @@ class Voucher extends Model
         'code',
         'expires_at',
         'reward_type', 'reward', 'currency_code',
-        'quantity', 'is_disposable',
+        'quantity', 'is_disposable', 'quantity_used',
         'can_redeem', 'cannot_redeem', 'allow_models', 'deny_models',
+        'meta',
     ];
 
     /**
@@ -43,8 +44,17 @@ class Voucher extends Model
         'can_redeem' => 'array',
         'cannot_redeem' => 'array',
         'quantity' => 'integer',
+        'quantity_used' => 'integer',
         'is_disposable' => 'boolean',
+        'meta' => 'array',
     ];
+
+    /**
+     * ModelData: use model's column
+     *
+     * @var string|false
+     */
+    public $model_data = 'meta';
 
     public function __construct(array $attributes = [])
     {
@@ -174,7 +184,7 @@ class Voucher extends Model
 
         if($this->is_disposable && $attached) return true;
 
-        if(!$this->is_disposable && $this->quantity < 1) return true;
+        if(!$this->is_disposable && ($this->quantity_used >= $this->quantity)) return true;
 
         return false;
     }

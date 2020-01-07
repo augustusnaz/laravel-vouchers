@@ -27,11 +27,9 @@ class Vouchers
     public function generate(int $amount = 1): array
     {
         $codes = [];
-
         for ($i = 1; $i <= $amount; $i++) {
             $codes[] = $this->getUniqueVoucher();
         }
-
         return $codes;
     }
 
@@ -70,7 +68,6 @@ class Vouchers
         if(!isset($attributes['quantity'])){
             $attributes['quantity'] = $reuse+1;
         }
-
         return $this->create($model, $amount, $attributes);
     }
 
@@ -83,14 +80,12 @@ class Vouchers
     public function check(string $code)
     {
         $voucher = Voucher::whereCode($code)->first();
-
         if ($voucher === null) {
             throw VoucherIsInvalid::withCode($code);
         }
         if ($voucher->isExpired()) {
             throw VoucherExpired::create($voucher);
         }
-
         return $voucher;
     }
 
@@ -100,11 +95,9 @@ class Vouchers
     protected function getUniqueVoucher(): string
     {
         $voucher = $this->generator->generateUnique();
-
         while (Voucher::whereCode($voucher)->count() > 0) {
             $voucher = $this->generator->generateUnique();
         }
-
         return $voucher;
     }
 }
