@@ -195,7 +195,7 @@ class Voucher extends Model
      * @param days $reuse
      * @return self
      */
-    public function days(integer $days)
+    public function days($days)
     {
         $this->expires_at = today()->addDays($days);
 
@@ -335,7 +335,7 @@ class Voucher extends Model
     public function getAllowedUsersArrayAttribute(){
         $array = [];
         if(!is_array($can_redeem = $this->can_redeem)){
-            $can_redeem = json_decode($can_redeem, true);
+            $can_redeem = json_decode($can_redeem, true)?? [];
         }
         foreach($can_redeem as $user){
             if(is_string($user)){
@@ -354,7 +354,7 @@ class Voucher extends Model
     public function getDisallowedUsersArrayAttribute(){
         $array = [];
         if(!is_array($cannot_redeem = $this->cannot_redeem)){
-            $cannot_redeem = json_decode($cannot_redeem, true);
+            $cannot_redeem = json_decode($cannot_redeem, true)?? [];
         }
         foreach($cannot_redeem as $user){
             if(is_string($user)){
