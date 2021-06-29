@@ -1,9 +1,4 @@
-
-
-
-
-## Nova Resource Example
-
+# Nova Resource Example
 
 
 ```php
@@ -62,18 +57,8 @@ class Vouchers extends Resource
             })->types([
                 Product::class,
             ]),
-            
-            ...
 
-            Number::make('Reward')->min(1)->max(1000)->step(0.01)->rules('nullable', 'between:0,999.99')->sortable()->displayUsing(function ($reward) {
-                switch($this->reward_type){
-                    case Voucher::TYPE_PERCENTAGE: return "$reward %";
-                    case Voucher::TYPE_MONETARY:
-                        $currency_code = Store::getCurrencyOptions()[$this->currency_code]?? $this->currency_code;
-                        return "$reward $currency_code";
-                }
-                return $reward;
-            }),
+            ...
 
             MorphOne::make('Data', 'modeldata', ModelData::class), // you'll have to create a ModelData resource
 

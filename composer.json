@@ -7,8 +7,7 @@
         "laravel-vouchers",
         "vouchers",
         "promocodes",
-        "coupons",
-        "moirei.com"
+        "coupons"
     ],
     "homepage": "https://github.com/augustusnaz/laravel-vouchers",
     "license": "MIT",
@@ -24,12 +23,7 @@
         "illuminate/config": "^5.6|^6.0|^7.0|^8.0",
         "illuminate/database": "^5.6|^6.0|^7.0|^8.0",
         "illuminate/support": "^5.6|^6.0|^7.0|^8.0",
-        "moirei/laravel-model-data": "^1.0"
-    },
-    "require-dev": {
-        "mockery/mockery": "^1.1",
-        "phpunit/phpunit": "^7.0|^9.0",
-        "orchestra/testbench": "~3.5.0|~3.6.0|~3.7.0|~3.8.0"
+        "moirei/laravel-model-data": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -58,5 +52,10 @@
                 "Vouchers": "MOIREI\\Vouchers\\Facades\\Vouchers"
             }
         }
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.4",
+        "orchestra/testbench": "^6.18",
+        "phpunit/phpunit": "^9.5"
     }
 }

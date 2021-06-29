@@ -16,19 +16,18 @@ class VouchersServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/config.php' => config_path('vouchers.php'),
-            ], 'config');
+            ], 'vouchers-config');
 
 
             if (! class_exists('CreateVouchersTable')) {
                 $this->publishes([
-                    __DIR__.'/../database/migrations/create_vouchers_table.php.stub' => database_path('migrations/'.date('Y_m_d_His', time()).'_create_vouchers_table.php'),
-                    __DIR__.'/../database/migrations/add_columns_to_vouchers_table.php.stub' => database_path('migrations/'.date('Y_m_d_His', time()).'_add_columns_to_vouchers_table.php'),
-                ], 'migrations');
+                    __DIR__.'/../database/migrations/create_vouchers_table.php' => database_path('migrations/'.date('Y_m_d_His', time()).'_create_vouchers_table.php'),
+                ], 'vouchers-migrations');
             }
 
             $this->publishes([
                 __DIR__.'/../translations' => resource_path('lang/vendor/vouchers'),
-            ], 'translations');
+            ], 'vouchers-translations');
         }
     }
 

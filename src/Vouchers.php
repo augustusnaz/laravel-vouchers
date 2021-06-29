@@ -34,41 +34,36 @@ class Vouchers
     }
 
     /**
-     * @param Model $model
+     * @param Model|string|array $item
      * @param int $amount
      * @param array $attributes
      * @return array
      */
-    public function create(Model $model, $amount = 1, array $attributes = [])
+    public function create(Model|string|array $item, $amount = 1, array $attributes = [])
     {
-        $attributes['model_id'] = $model->getKey();
-        $attributes['model_type'] = $model->getMorphClass();
-        $data = $attributes['data']?? [];
-        unset($attributes['data']);
-
         foreach ($this->generate($amount) as $voucherCode) {
             $attributes['code'] = $voucherCode;
-            $voucher = $vouchers[] = Voucher::create($attributes);
-            $voucher->data = $data;
-            $voucher->data->save();
+            $voucher = new Voucher($attributes);
+            $voucher->setItems($item);
+            $vouchers[] = $voucher;
+            $voucher->save();
         }
 
         return $vouchers;
     }
 
     /**
-     * @param Model $model
+     * @param Model|string|array $item
      * @param int $amount
      * @param array $attributes
      * @return array
      */
-    public function createReuse(Model $model, $amount = 1, array $attributes = [], $reuse = 1)
+    public function createReuse(Model|string|array $item, $amount = 1, array $attributes = [], $reuse = 1)
     {
-        $attributes['is_disposable'] = false;
-        if(!isset($attributes['quantity'])){
-            $attributes['quantity'] = $reuse+1;
+        if (!isset($attributes['quantity'])) {
+            $attributes['quantity'] = $reuse + 1;
         }
-        return $this->create($model, $amount, $attributes);
+        return $this->create($item, $amount, $attributes);
     }
 
     /**

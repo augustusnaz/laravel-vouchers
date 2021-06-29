@@ -12,29 +12,36 @@ class CreateVouchersTable extends Migration
      */
     public function up()
     {
-        $voucherTable = config('vouchers.table', 'vouchers');
-        $pivotTable = config('vouchers.pivot_table', 'user_voucher');
+        $voucherTable = config('vouchers.tables.vouchers', 'vouchers');
+        $redeemerPivotTable = config('vouchers.tables.redeemer_pivot_table', 'redeemer_voucher');
+        $itemPivotTable = config('vouchers.tables.item_pivot_table', 'item_voucher');
 
         Schema::create($voucherTable, function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('code', 32)->unique();
-            $table->morphs('model');
-            $table->string('currency_code', 5)->nullable()->default( config('default_currency', 'USD') );
-            $table->string('reward_type', 12)->default( config('default_reward_type', Voucher::TYPE_PERCENTAGE) );
-            $table->double('reward', 10, 2)->nullable();
             $table->integer('quantity')->nullable()->default(1);
-            $table->boolean('is_disposable')->default(true);
+            $table->json('quantity_used')->nullable();
+            $table->string('limit_scheme', 24)->default(config('vouchers.default_limit_scheme', Voucher::LIMIT_INSTANCE));
             $table->text('can_redeem')->nullable();
             $table->text('cannot_redeem')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
+            $table->text('data')->nullable();
         });
 
-        Schema::create($pivotTable, function (Blueprint $table) use ($voucherTable) {
+        Schema::create($redeemerPivotTable, function (Blueprint $table) use ($voucherTable) {
             $table->bigIncrements('id');
             $table->morphs('voucherable');
             $table->unsignedBigInteger('voucher_id');
             $table->timestamp('redeemed_at');
+
+            $table->foreign('voucher_id')->references('id')->on($voucherTable);
+        });
+
+        Schema::create($itemPivotTable, function (Blueprint $table) use ($voucherTable) {
+            $table->bigIncrements('id');
+            $table->morphs('item');
+            $table->unsignedBigInteger('voucher_id');
 
             $table->foreign('voucher_id')->references('id')->on($voucherTable);
         });
@@ -46,6 +53,6 @@ class CreateVouchersTable extends Migration
     public function down()
     {
         Schema::dropIfExists(config('vouchers.table', 'vouchers'));
-        Schema::dropIfExists(config('vouchers.pivot_table', 'user_voucher'));
+        Schema::dropIfExists(config('vouchers.pivot_table', 'redeemer_voucher'));
     }
 }

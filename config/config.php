@@ -2,15 +2,6 @@
 
 return [
 
-    /*
-     * Database table name that will be used in migration
-     */
-    'table' => 'vouchers',
-
-    /*
-     * Database pivot table name for vouchers and users relation
-     */
-    'relation_table' => 'user_voucher',
 
     /*
      * List of characters that will be used for voucher code generation.
@@ -47,20 +38,31 @@ return [
     /*
      * The user model that belongs to vouchers.
      */
-    'user_model' => \App\Models\User::class,
+    'models' => [
+        'vouchers' => \MOIREI\Vouchers\Models\Voucher::class,
+        'users' => \App\Models\User::class,
+        'products' => \App\Models\Product::class,
+    ],
+
+    'tables' => [
+        /*
+         * Database table name that will be used in migration
+         */
+        'vouchers' => 'vouchers',
+
+        /*
+         * Database pivot table name for vouchers and users relation
+         */
+        'redeemer_pivot_table' => 'redeemer_voucher',
+
+        /*
+         * Database pivot table name for vouchers and products relation
+         */
+        'item_pivot_table' => 'item_voucher',
+    ],
 
     /*
-     * The a custom model (other than user) that belongs to vouchers.
+     * Default reuse limit scheme
      */
-    'custom_model' => \App\Models\Guest::class,
-
-    /*
-     * Default currency
-     */
-    'default_currency' => 'USD',
-
-    /*
-     * Default reward type
-     */
-    'default_reward_type' => \MOIREI\Vouchers\Models\Voucher::TYPE_PERCENTAGE,
+    'default_limit_scheme' => \MOIREI\Vouchers\Models\Voucher::LIMIT_INSTANCE,
 ];

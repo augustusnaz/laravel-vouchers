@@ -4,6 +4,9 @@ namespace MOIREI\Vouchers\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use MOIREI\ModelData\HasData;
 use MOIREI\Vouchers\Facades\Vouchers;
 
@@ -11,28 +14,15 @@ class Voucher extends Model
 {
     use HasData;
 
-    const TYPE_PERCENTAGE = 'percentage';
-    const TYPE_MONETARY = 'monetary';
-    const TYPE_OTHER = 'other';
+    const LIMIT_INSTANCE = 'limit-per-instance';
+    const LIMIT_ITEM = 'limit-per-item';
+    const LIMIT_REDEEMER = 'limit-per-redeemer';
 
     protected $fillable = [
-        'model_id',
-        'model_type',
-        'code',
-        'expires_at',
-        'reward_type', 'reward', 'currency_code',
-        'quantity', 'is_disposable', 'quantity_used',
+        'code', 'expires_at',
+        'quantity', 'quantity_used', 'limit_scheme', 'reward',
         'can_redeem', 'cannot_redeem', 'allow_models', 'deny_models',
-        'meta',
-    ];
-
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array
-     */
-    protected $dates = [
-        'expires_at'
+        'data',
     ];
 
     /**
@@ -41,35 +31,49 @@ class Voucher extends Model
      * @var array
      */
     protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'expires_at' => 'datetime',
         'can_redeem' => 'array',
         'cannot_redeem' => 'array',
         'quantity' => 'integer',
-        'quantity_used' => 'integer',
-        'is_disposable' => 'boolean',
-        'meta' => 'array',
+        'quantity_used' => 'json',
     ];
 
     /**
      * ModelData: use model's column
      *
-     * @var string|false
+     * @var array|string|false
      */
-    public $model_data = 'meta';
+    protected $model_data = 'data';
 
+    /**
+     * Used to track items to be associated to the voucher if the instances has not been saved
+     *
+     * @var array
+     */
+    private $queuedItems = [];
+
+    /**
+     * Construct a voucher instance
+     *
+     * @param array $attributes
+     */
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-
         $this->table = config('vouchers.table', 'vouchers');
     }
 
-    public function __toString()
+    /**
+     * Make a new voucher instance
+     *
+     * @param array $attributes
+     * @return \MOIREI\Vouchers\Models\Voucher
+     */
+    public static function make(array $attributes = [])
     {
-        switch($this->reward_type){
-            case self::TYPE_PERCENTAGE: return "$this->reward%";
-            case self::TYPE_MONETARY: return "$this->currency_code $this->reward";
-        }
-        return $this->reward;
+        return new static($attributes);
     }
 
     /**
@@ -78,7 +82,8 @@ class Voucher extends Model
      * @param $query
      * @return mixed
      */
-    public function scopeCode($query, $code){
+    public function scopeCode($query, $code)
+    {
         return $query->where('code', $code);
     }
 
@@ -90,7 +95,7 @@ class Voucher extends Model
      */
     public function scopeDisposable($query)
     {
-        return $query->where('is_disposable', true);
+        return $query->where('quantity', 1);
     }
 
     /**
@@ -101,7 +106,7 @@ class Voucher extends Model
      */
     public function scopeNotDisposable($query)
     {
-        return $query->where('is_disposable', false);
+        return $query->where('quantity', '>', 1);
     }
 
     /**
@@ -118,81 +123,254 @@ class Voucher extends Model
     /**
      * Get the users who redeemed this voucher.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphedByMany
+     * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
      */
-    public function users()
+    public function users(): MorphToMany
     {
-        return $this->morphedByMany(config('vouchers.user_model'), 'voucherable', config('vouchers.pivot_table', 'user_voucher'));
+        return $this->morphedByMany(
+            config('vouchers.models.users'),
+            'voucherable',
+            config('vouchers.tables.redeemer_pivot_table', 'redeemer_voucher')
+        );
     }
 
     /**
-     * Get others who redeemed this voucher. Ideally a guest model.
+     * Products related this voucher
      *
-     * @return \Illuminate\Database\Eloquent\Relations\MorphedByMany
+     * @return \Illuminate\Database\Eloquent\Relations\MorphToMany
      */
-    public function others()
+    public function products(): MorphToMany
     {
-        return $this->morphedByMany(config('vouchers.custom_model'), 'voucherable', config('vouchers.pivot_table', 'user_voucher'));
+        return $this->morphedByMany(
+            config('vouchers.models.products'),
+            'item',
+            config('vouchers.tables.item_pivot_table', 'item_voucher')
+        );
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
-     */
-    public function model()
-    {
-        return $this->morphTo();
-    }
-
-    /**
-     * Vourables of models that have redeemed this voucher
+     * Models that have redeemed this voucher
      *
-     * @return Collection
+     * @return HasMany
      */
     public function related_redeemers()
     {
-        return $this->hasMany(Voucherable::class);
+        return $this->hasMany(UserVoucherable::class);
     }
 
     /**
-     * Check if code is disposable.
+     * Items associated with this voucher
      *
-     * @return bool
+     * @return HasMany
      */
-    public function isDisposable()
+    public function items(): HasMany
     {
-        return $this->is_disposable;
+        return $this->hasMany(ItemVoucherable::class);
     }
 
     /**
-     * Check if code is expired.
+     * Increment the amount used
      *
-     * @return bool
+     * @param int $count
+     * @param Model|null $redeemer
+     * @param Model|null $item
+     * @return self
      */
-    public function isExpired()
+    public function incrementUse(int $count = 1, Model $redeemer = null, Model $item = null)
     {
-        return $this->expires_at ? Carbon::now()->gte($this->expires_at) : false;
+        $this->setQuantityUsed(
+            $this->getQuantityUsed($redeemer, $item) + $count,
+            $redeemer,
+            $item,
+        );
+
+        return $this;
     }
 
     /**
-     * Check if code is redeemed.
+     * Limit use by
      *
+     * @param string $per
+     * @param int|null $quantity
+     * @return self
+     */
+    public function limitUsePer(string $per, int|null $quantity = null)
+    {
+        $this->attributes['limit_scheme'] = $per;
+        if (!is_null($quantity)) {
+            $this->attributes['quantity'] = $quantity;
+        }
+        return $this;
+    }
+
+    /**
+     * Limit use per instance
+     *
+     * @param int|null $quantity
+     * @return self
+     */
+    public function limitUsePerInstance(int|null $quantity = null)
+    {
+        return $this->limitUsePer(self::LIMIT_INSTANCE, $quantity);
+    }
+
+    /**
+     * Limit use per product
+     *
+     * @param int|null $quantity
+     * @return self
+     */
+    public function limitUsePerItem(int|null $quantity = null)
+    {
+        return $this->limitUsePer(self::LIMIT_ITEM, $quantity);
+    }
+
+    /**
+     * Limit use per redeemer
+     *
+     * @param int|null $quantity
+     * @return self
+     */
+    public function limitUsePerRedeemer(int|null $quantity = null)
+    {
+        return $this->limitUsePer(self::LIMIT_REDEEMER, $quantity);
+    }
+
+    /**
+     * Get the quantity used (based on limit scheme)
+     *
+     * @param int $quantity
+     * @param Model|null $redeemer
+     * @param Model|null $item
+     * @return self
+     */
+    protected function setQuantityUsed(int $quantity, Model $redeemer = null, Model $item = null): self
+    {
+        $quantity_used = $this->quantity_used;
+
+        if ($this->limit_scheme === self::LIMIT_INSTANCE) {
+            Arr::set($quantity_used, 'instance', $quantity);
+        } elseif ($this->limit_scheme === self::LIMIT_ITEM && $item) {
+            Arr::set($quantity_used, "item.$item->id", $quantity);
+        } elseif ($this->limit_scheme === self::LIMIT_REDEEMER && $redeemer) {
+            $redeemer_type = $redeemer->getMorphClass();
+            $redeemer_id = $redeemer->getKey();
+            Arr::set($quantity_used, "redeemer.$redeemer_type:$redeemer_id", $quantity);
+        } else {
+            return $this;
+        }
+
+        $this->quantity_used = $quantity_used;
+
+        return $this;
+    }
+
+    /**
+     * Get the quantity used (based on limit scheme)
+     *
+     * @param Model|null $redeemer
+     * @param Model|null $item
+     * @return int
+     */
+    public function getQuantityUsed(Model $redeemer = null, Model $item = null): int
+    {
+        $quantity_used = $this->quantity_used;
+
+        if ($this->limit_scheme === self::LIMIT_INSTANCE) {
+            $used = Arr::get($quantity_used, 'instance', 0);
+        } elseif ($this->limit_scheme === self::LIMIT_ITEM) {
+            if ($item) {
+                $used = Arr::get($quantity_used, "item.$item->id", 0);
+            } else {
+                // if no specific item given, the least quantity exhausts usage
+                $used = collect(Arr::get($quantity_used, 'item', []))->values()->flatten()->min() ?: 0;
+            }
+        } elseif ($this->limit_scheme === self::LIMIT_REDEEMER) {
+            if ($redeemer) {
+                $redeemer_type = $redeemer->getMorphClass();
+                $redeemer_id = $redeemer->getKey();
+                $used = Arr::get($quantity_used, "redeemer.$redeemer_type:$redeemer_id", 0);
+            } else {
+                // if no specific redeemer given, the least quantity exhausts usage
+                $used = collect(Arr::get($quantity_used, 'redeemer', []))->values()->flatten()->min() ?: 0;
+            }
+        } else {
+            $used = 0;
+        }
+
+        return $used;
+    }
+
+    /**
+     * Set the related items.
+     *
+     * @param Model|string|array $items
      * @return bool
      */
-    public function isRedeemed()
+    public function setItems(Model|string|array $items): self
     {
-        $attached = $this->users()->exists() || $this->others()->exists();
+        if (!is_array($items)) {
+            $items = [$items];
+        }
+        if (!$this->exists) {
+            $this->queuedItems = $items;
+        } else {
+            $default_item_class = config('vouchers.models.products');
+            $items = array_map(fn ($item) => ($item instanceof Model) ? $item : $default_item_class::find($item), $items);
+            $this->items()->get()->each->delete();
+            foreach ($items as $item) {
+                $this->morphedByMany(
+                    $item->getMorphClass(),
+                    'item',
+                    config('vouchers.tables.item_pivot_table', 'item_voucher')
+                )->save($item);
+            }
+        }
 
-        if($this->is_disposable && $attached) return true;
+        return $this;
+    }
 
-        if(!$this->is_disposable && ($this->quantity_used >= $this->quantity)) return true;
+    /**
+     * Add to the related items.
+     *
+     * @param Model|string|array $items
+     * @return bool
+     */
+    public function addItems(Model|string|array $items): self
+    {
+        if (!is_array($items)) {
+            $items = [$items];
+        }
+        if (!$this->exists) {
+            $this->queuedItems = array_merge($this->queuedItems, $items);
+        } else {
+            function getItemKey($item)
+            {
+                return $item->getMorphClass() . ':' . $item->getKey();
+            }
 
-        return false;
+            $default_item_class = config('vouchers.models.products');
+            $items = array_map(fn ($item) => ($item instanceof Model) ? $item : $default_item_class::find($item), $items);
+            $existing_item_keys = $this->items()->get()->map(fn ($item) => getItemKey($item->item))->toArray();
+
+            foreach ($items as $item) {
+                if (!in_array(getItemKey($item), $existing_item_keys)) {
+                    $this->morphedByMany(
+                        $item->getMorphClass(),
+                        'item',
+                        config('vouchers.tables.item_pivot_table', 'item_voucher')
+                    )->save($item);
+                }
+            }
+        }
+
+        return $this;
     }
 
     /**
      * Add expiry days
      *
-     * @param days $reuse
+     * @param $reuse
      * @return self
      */
     public function days($days)
@@ -205,52 +383,25 @@ class Voucher extends Model
     /**
      * Number of times this voucher may be reused
      *
-     * @param integer $reuse
+     * @param int $reuse
      * @return self
      */
-    public function reuse($reuse = 1)
+    public function reuse(int $reuse = 1)
     {
-        $this->is_disposable = false;
-        $this->quantity = $reuse+1;
+        $this->quantity = $reuse + 1;
 
         return $this;
     }
 
     /**
-     * The currency code
+     * Expire the voucher
      *
-     * @param string $currency_code
+     * @param Carbon|null $date
      * @return self
      */
-    public function currency($currency_code)
+    public function expire(Carbon|Null $date = null): self
     {
-        $this->currency_code = $currency_code;
-
-        return $this;
-    }
-
-    /**
-     * The reward type
-     *
-     * @param string $reward_type
-     * @return self
-     */
-    public function rewardType($reward_type)
-    {
-        $this->reward_type = $reward_type;
-
-        return $this;
-    }
-
-    /**
-     * The reward
-     *
-     * @param double $reward
-     * @return self
-     */
-    public function rewardValue($reward)
-    {
-        $this->reward = $reward;
+        $this->expires_at = is_null($date) ? Carbon::now() : $date;
 
         return $this;
     }
@@ -264,8 +415,8 @@ class Voucher extends Model
     public function allow(array $allowed)
     {
         $models = array();
-        foreach($allowed as $allowed_model){
-            if($allowed_model instanceof Model){
+        foreach ($allowed as $allowed_model) {
+            if ($allowed_model instanceof Model) {
                 array_push($models, [
                     'voucherable_type' => $allowed_model->getMorphClass(),
                     'voucherable_id' => $allowed_model->getKey(),
@@ -286,8 +437,8 @@ class Voucher extends Model
     public function deny(array $denied)
     {
         $models = array();
-        foreach($denied as $denied_model){
-            if($denied_model instanceof Model){
+        foreach ($denied as $denied_model) {
+            if ($denied_model instanceof Model) {
                 array_push($models, [
                     'voucherable_type' => $denied_model->getMorphClass(),
                     'voucherable_id' => $denied_model->getKey(),
@@ -306,14 +457,20 @@ class Voucher extends Model
      */
     public function getRedeemersAttribute()
     {
-        // return $this->with('related_redeemers.voucherables');
+        return $this->related_redeemers()->get()->map(function ($entry) {
+            return $entry->voucherable;
+        });
+    }
 
-        /**
-         * There's probably a more Eloquent way of retrieving the related models
-         */
-        return $this->related_redeemers->map(function($voucherable){
-            $class = '\\'.$voucherable->voucherable_type;
-            return $class::find( $voucherable->voucherable_id );
+    /**
+     * Items associated with this voucher
+     *
+     * @return Collection
+     */
+    public function getItemsAttribute()
+    {
+        return $this->items()->get()->map(function ($entry) {
+            return $entry->item;
         });
     }
 
@@ -332,13 +489,14 @@ class Voucher extends Model
      *
      * @return array
      */
-    public function getAllowedUsersArrayAttribute(){
+    public function getAllowedUsersArrayAttribute()
+    {
         $array = [];
-        if(!is_array($can_redeem = $this->can_redeem)){
-            $can_redeem = json_decode($can_redeem, true)?? [];
+        if (!is_array($can_redeem = $this->can_redeem)) {
+            $can_redeem = json_decode($can_redeem, true) ?? [];
         }
-        foreach($can_redeem as $user){
-            if(is_string($user)){
+        foreach ($can_redeem as $user) {
+            if (is_string($user)) {
                 $user = json_decode($user, true);
             }
             array_push($array, $user);
@@ -351,13 +509,14 @@ class Voucher extends Model
      *
      * @return array
      */
-    public function getDisallowedUsersArrayAttribute(){
+    public function getDisallowedUsersArrayAttribute()
+    {
         $array = [];
-        if(!is_array($cannot_redeem = $this->cannot_redeem)){
-            $cannot_redeem = json_decode($cannot_redeem, true)?? [];
+        if (!is_array($cannot_redeem = $this->cannot_redeem)) {
+            $cannot_redeem = json_decode($cannot_redeem, true) ?? [];
         }
-        foreach($cannot_redeem as $user){
-            if(is_string($user)){
+        foreach ($cannot_redeem as $user) {
+            if (is_string($user)) {
                 $user = json_decode($user, true);
             }
             array_push($array, $user);
@@ -373,10 +532,11 @@ class Voucher extends Model
     public function getAllowedModels()
     {
         $models = [];
-        foreach($this->allowed_users_array as $user){
-            $class = '\\'.$user['voucherable_type'];
-            array_push($models,
-                $class::find( $user['voucherable_id'] )
+        foreach ($this->allowed_users_array as $user) {
+            $class = '\\' . $user['voucherable_type'];
+            array_push(
+                $models,
+                $class::find($user['voucherable_id'])
             );
         }
         return $models;
@@ -390,13 +550,88 @@ class Voucher extends Model
     public function getDisallowedModels()
     {
         $models = [];
-        foreach($this->disallowed_users_array as $user){
-            $class = '\\'.$user['voucherable_type'];
-            array_push($models,
-                $class::find( $user['voucherable_id'] )
+        foreach ($this->disallowed_users_array as $user) {
+            $class = '\\' . $user['voucherable_type'];
+            array_push(
+                $models,
+                $class::find($user['voucherable_id'])
             );
         }
         return $models;
+    }
+
+    /**
+     * Check if code is disposable.
+     *
+     * @return bool
+     */
+    public function isDisposable()
+    {
+        return $this->quantity == 1;
+    }
+
+    /**
+     * Check if code is expired.
+     *
+     * @return bool
+     */
+    public function isExpired()
+    {
+        return $this->expires_at ? Carbon::now()->gte($this->expires_at) : false;
+    }
+
+    /**
+     * Check if code is redeemed.
+     *
+     * @param Model|null $redeemer
+     * @param Model|null $item
+     * @return bool
+     */
+    public function isRedeemed(Model $redeemer = null, Model $item = null): bool
+    {
+        return $this->redeemers->count() && $this->isExhausted($redeemer, $item);
+    }
+
+    /**
+     * Check if the voucher redeems has been exhausted.
+     *
+     * @param Model|null $redeemer
+     * @param Model|null $item
+     * @return bool
+     */
+    public function isExhausted(Model $redeemer = null, Model $item = null): bool
+    {
+        return $this->getQuantityUsed($redeemer, $item) >= $this->quantity;
+    }
+
+    /**
+     * Check if the given item is related.
+     *
+     * @param Model|string|int $product
+     * @return bool
+     */
+    public function isItem(Model|string|int $item): bool
+    {
+        function getItemKey($item)
+        {
+            return $item->getMorphClass() . ':' . $item->getKey();
+        }
+
+        $default_item_class = config('vouchers.models.products');
+        $item = ($item instanceof Model) ? $item : $default_item_class::find($item);
+        $existing_item_keys = $this->items()->get()->map(fn ($item) => getItemKey($item->item))->toArray();
+
+        return in_array(getItemKey($item), $existing_item_keys);
+    }
+
+    /**
+     * Cast voucher to string by returning its code
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->code;
     }
 
     /**
@@ -404,51 +639,56 @@ class Voucher extends Model
      *
      * @return void
      */
-    protected static function boot() {
+    protected static function boot()
+    {
         parent::boot();
 
         // when a voucher is being created
-        static::creating(function(Voucher $voucher){
+        static::creating(function (Voucher $voucher) {
 
-            if(empty($voucher->code) || is_null($voucher->code)){
+            if (empty($voucher->code)) {
                 $voucher->code = Vouchers::generate(1)[0];
             }
 
-            if(isset($voucher->allow_models)){
-                if(is_array($voucher->allow_models)){
-                    $voucher->allow( $voucher->allow_models );
+            if (isset($voucher->allow_models)) {
+                if (is_array($voucher->allow_models)) {
+                    $voucher->allow($voucher->allow_models);
                 }
                 unset($voucher->allow_models);
             }
 
-            if(isset($voucher->deny_models)){
-                if(is_array($voucher->deny_models)){
-                    $voucher->deny( $voucher->deny_models );
+            if (isset($voucher->deny_models)) {
+                if (is_array($voucher->deny_models)) {
+                    $voucher->deny($voucher->deny_models);
                 }
                 unset($voucher->deny_models);
             }
+        });
 
+        static::created(function (Voucher $voucher) {
+            if ($voucher->queuedItems) {
+                $voucher->setItems($voucher->queuedItems);
+                $voucher->queuedItems = [];
+                $voucher->save();
+            }
         });
 
         // when a voucher is being updated
-        static::updating(function(Voucher $voucher){
+        static::updating(function (Voucher $voucher) {
 
-            if(isset($voucher->allow_models)){
-                if(is_array($voucher->allow_models)){
-                    $voucher->allow( $voucher->allow_models );
+            if (isset($voucher->allow_models)) {
+                if (is_array($voucher->allow_models)) {
+                    $voucher->allow($voucher->allow_models);
                 }
                 unset($voucher->allow_models);
             }
 
-            if(isset($voucher->deny_models)){
-                if(is_array($voucher->deny_models)){
-                    $voucher->deny( $voucher->deny_models );
+            if (isset($voucher->deny_models)) {
+                if (is_array($voucher->deny_models)) {
+                    $voucher->deny($voucher->deny_models);
                 }
                 unset($voucher->deny_models);
             }
-
         });
-
     }
-
 }
