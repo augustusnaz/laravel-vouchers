@@ -14,15 +14,15 @@ The configuration file will be placed in `config/vouchers.php`
 
 ## Models
 
-Confugure your relationship models. Users model is given as a base. Redeemers maybe of any type.
+Confugure your relationship models. `users` and `products` is given as the default redeemer and item types. The Voucher class may be extended to include other models.
 
 ```php
 // vouchers.php
 ...
 'models' => [
+    'vouchers' => \App\Models\Ecommerce\Voucher::class,
     'users' => \App\Models\User::class,
     'products' => \App\Models\Ecommerce\Product::class,
-    'vouchers' => \App\Models\Ecommerce\Voucher::class,
 ],
 ...
 ```

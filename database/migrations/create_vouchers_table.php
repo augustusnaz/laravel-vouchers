@@ -26,6 +26,7 @@ class CreateVouchersTable extends Migration
             $table->text('cannot_redeem')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
+            $table->double('value', 10, 2)->nullable();
             $table->text('data')->nullable();
         });
 

@@ -2,7 +2,7 @@
 
 namespace MOIREI\Vouchers\Models;
 
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +20,7 @@ class Voucher extends Model
 
     protected $fillable = [
         'code', 'expires_at',
-        'quantity', 'quantity_used', 'limit_scheme', 'reward',
+        'quantity', 'quantity_used', 'limit_scheme', 'value',
         'can_redeem', 'cannot_redeem', 'allow_models', 'deny_models',
         'data',
     ];
@@ -38,6 +38,7 @@ class Voucher extends Model
         'cannot_redeem' => 'array',
         'quantity' => 'integer',
         'quantity_used' => 'json',
+        'value' => 'decimal:2',
     ];
 
     /**
@@ -368,6 +369,19 @@ class Voucher extends Model
     }
 
     /**
+     * Set voucher value
+     *
+     * @param $value
+     * @return self
+     */
+    public function value($value)
+    {
+        $this->value = $value;
+
+        return $this;
+    }
+
+    /**
      * Add expiry days
      *
      * @param $reuse
@@ -622,6 +636,25 @@ class Voucher extends Model
         $existing_item_keys = $this->items()->get()->map(fn ($item) => getItemKey($item->item))->toArray();
 
         return in_array(getItemKey($item), $existing_item_keys);
+    }
+
+    /**
+     * Prune the expired vouchers.
+     *
+     * @param \Illuminate\Support\Carbon|int $age
+     * @return void
+     */
+    static public function pruneExpired(Carbon | int $age = 1)
+    {
+        if (is_int($age)) {
+            $age = Carbon::now()->subDays($age);
+        }
+
+        $query = static::expired($age)->orderBy('id', 'desc');
+
+        $query->chunk(100, function ($vouchers) {
+            $vouchers->each->delete();
+        });
     }
 
     /**

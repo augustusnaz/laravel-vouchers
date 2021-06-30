@@ -1,9 +1,6 @@
 # Usage Limits
 
-
-Reuse
-Limit uses: quantity, product, users
-expire, days
+Voucher quantity (number of times it may be redeemed), associated items, expiry dates, allowd/denied uses, are optional parametes that may be used to further limit who or what can redeem a voucher.
 
 ## Limit Quantity
 
@@ -37,7 +34,7 @@ $vouchers = Vouchers::createReuse($product, 1, $attributes, 2); // reuse twice
 $vouchers = Vouchers::createReuse($product, 1, ['quantity' => 3]); // reuse twice
 ```
 
-Limit schemes is used to specify whether the total quantity is reduced per instance, associated items or per redeemer.
+Limit scheme is used to specify whether the total quantity is reduced per instance, associated items or per redeemer.
 
 | Name                     | Description                                                  |
 | ------------------------ | ------------------------------------------------------------ |
@@ -49,7 +46,7 @@ Limit schemes is used to specify whether the total quantity is reduced per insta
 
 ## Limit Redeemers
 
-Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. Specifies who may or may not have the ability to redeem a voucher instance.
+Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. Altimately specifies who may or may not have the ability to redeem a voucher instance.
 
 ```php
 $product = Product::find(1);
@@ -75,17 +72,13 @@ The `allow_models` and `deny_models` values can also be passed as attributes to 
 These attributes can be passed even after the voucher is created. You can also use the `allow` and `deny` methods;
 
 ```php
-$vouchers->allow([
-             $user1,
-         ])
-    	 ->deny([
-             $guest1,
-         ]);
+$vouchers->allow([$user1])
+    	 ->deny([$guest1]);
 ```
 
 **Notes**
 
-* The `allow_models` and `deny_models` attributes mentioned above are actually saved as `can_redeem` and `cannot_redeem` internally. They are mutated on boot creating or updating.
+* The `allow_models` and `deny_models` attributes mentioned above are actually saved as `can_redeem` and `cannot_redeem` internally. They are intercepted on boot creating and updating.
 
 
 ## Expiry
@@ -119,9 +112,19 @@ $voucher->expire()->save();
 $voucher->expire(now()->addHours(1))->save();
 ```
 
+To prune expired vouchers, call the `pruneExpired` method.
 
-## Specify Products
-The provided products are the only items the voucher maybe redeemed for.
+```php
+// prune expired items until now
+$voucher->pruneExpired();
+
+// prune expired vouchers before yesterday
+$voucher->pruneExpired(now()->yesterday());
+```
+
+
+## Specify Items
+The provided products below are the only items the voucher maybe redeemed against.
 
 ```php
 [$product1, $product2] = Product::all();

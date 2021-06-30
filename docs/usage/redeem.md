@@ -1,19 +1,21 @@
 # Redeem Vouchers
 
-To redeem a voucher by code, use the `redeem` method. Unfortunately this method does not have any magic:
+To redeem a voucher, use the `redeem` method:
 
 ```php
 $voucher = $user->redeem('ABCD-EFGH');
 // or
 $voucher = Voucher::find(1);
 $user->redeem($voucher);
+// or
+$user->redeem($voucher->code);
 ```
 
 If the voucher is valid, the method will return the voucher model associated with this code.
 
 After a voucher is successfully redeemed, this package will fire a `MOIREI\Vouchers\Events\VoucherRedeemed` event. The event contains the redeemer instance and the voucher instance.
 
-To redeem a voucher with multiple items, provide an item to redeem
+To redeem a voucher with multiple items, provide an item to the `redeem` method.
 ```php
 [$product1, $product2] = Product::take(2)->get();
 
@@ -27,5 +29,5 @@ $voucher = Voucher::make()
           ->save();
 
 // redeem for a perticular product
-$user->redeem($voucher, $product1);
+$user->redeem($voucher->code, $product1);
 ```
