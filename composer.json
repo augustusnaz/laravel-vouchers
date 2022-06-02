@@ -19,11 +19,15 @@
         }
     ],
     "require": {
-        "php": "^7.2|^8.0",
-        "illuminate/config": "^5.6|^6.0|^7.0|^8.0",
-        "illuminate/database": "^5.6|^6.0|^7.0|^8.0",
-        "illuminate/support": "^5.6|^6.0|^7.0|^8.0",
-        "moirei/laravel-model-data": "^1.2"
+        "php": "^7.2|^8.1",
+        "illuminate/config": "^7|^8|^9",
+        "illuminate/database": "^7|^8|^9",
+        "illuminate/support": "^7|^8|^9"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.5",
+        "orchestra/testbench": "^7.5",
+        "phpunit/phpunit": "^9.5"
     },
     "autoload": {
         "psr-4": {
@@ -38,7 +42,6 @@
     "scripts": {
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
-
     },
     "config": {
         "sort-packages": true
@@ -52,10 +55,5 @@
                 "Vouchers": "MOIREI\\Vouchers\\Facades\\Vouchers"
             }
         }
-    },
-    "require-dev": {
-        "mockery/mockery": "^1.4",
-        "orchestra/testbench": "^6.18",
-        "phpunit/phpunit": "^9.5"
     }
 }

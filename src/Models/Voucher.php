@@ -7,13 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Arr;
-use MOIREI\ModelData\HasData;
 use MOIREI\Vouchers\Facades\Vouchers;
+use Illuminate\Database\Eloquent\Casts\AsCollection;
 
+/**
+ * @property string $id
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property string $code
+ * @property int $quantity
+ * @property Object $quantity_used
+ * @property string $limit_scheme
+ * @property string[] $can_redeem
+ * @property string[] $cannot_redeem
+ * @property \Carbon\Carbon $expires_at
+ * @property double $value
+ * @property \Illuminate\Support\Collection $data
+ */
 class Voucher extends Model
 {
-    use HasData;
-
     const LIMIT_INSTANCE = 'limit-per-instance';
     const LIMIT_ITEM = 'limit-per-item';
     const LIMIT_REDEEMER = 'limit-per-redeemer';
@@ -39,14 +51,8 @@ class Voucher extends Model
         'quantity' => 'integer',
         'quantity_used' => 'json',
         'value' => 'decimal:2',
+        'data' => AsCollection::class,
     ];
-
-    /**
-     * ModelData: use model's column
-     *
-     * @var array|string|false
-     */
-    protected $model_data = 'data';
 
     /**
      * Used to track items to be associated to the voucher if the instances has not been saved
@@ -114,11 +120,17 @@ class Voucher extends Model
      * Query builder; get expired promotion codes.
      *
      * @param $query
+     * @param \Illuminate\Support\Carbon|int|null $age
      * @return mixed
      */
-    public function scopeExpired($query)
+    public function scopeExpired($query, $age = null)
     {
-        return $query->whereNotNull('expires_at')->whereDate('expires_at', '<=', Carbon::now());
+        if (!$age) $age = Carbon::now();
+        elseif (is_int($age)) {
+            $age = Carbon::now()->subDays($age);
+        }
+
+        return $query->whereNotNull('expires_at')->whereDate('expires_at', '<=', $age);
     }
 
     /**
@@ -646,10 +658,6 @@ class Voucher extends Model
      */
     static public function pruneExpired(Carbon | int $age = 1)
     {
-        if (is_int($age)) {
-            $age = Carbon::now()->subDays($age);
-        }
-
         $query = static::expired($age)->orderBy('id', 'desc');
 
         $query->chunk(100, function ($vouchers) {

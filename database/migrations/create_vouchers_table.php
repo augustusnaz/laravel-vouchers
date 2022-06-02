@@ -53,7 +53,8 @@ class CreateVouchersTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists(config('vouchers.table', 'vouchers'));
-        Schema::dropIfExists(config('vouchers.pivot_table', 'redeemer_voucher'));
+        Schema::dropIfExists(config('vouchers.tables.vouchers', 'vouchers'));
+        Schema::dropIfExists(config('vouchers.tables.redeemer_pivot_table', 'redeemer_voucher'));
+        Schema::dropIfExists(config('vouchers.tables.item_pivot_table', 'redeemer_voucher'));
     }
 }

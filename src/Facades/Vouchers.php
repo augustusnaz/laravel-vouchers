@@ -5,7 +5,7 @@ namespace MOIREI\Vouchers\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \MOIREI\Vouchers\VouchersClass
+ * @see \MOIREI\Vouchers\Vouchers
  */
 class Vouchers extends Facade
 {
