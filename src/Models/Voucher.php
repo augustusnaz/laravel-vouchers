@@ -576,7 +576,7 @@ class Voucher extends Model
             foreach ($items as $item) {
                 if (!in_array(Helpers::getModelKey($item), $existing_item_keys)) {
                     $this->morphedByMany(
-                        $item->getMorphClass(),
+                        Helpers::getMorphedModel($item),
                         'item',
                         config('vouchers.tables.item_pivot_table', 'item_voucher'),
                         'voucher_id',

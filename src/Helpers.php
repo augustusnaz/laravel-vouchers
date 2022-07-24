@@ -3,6 +3,7 @@
 namespace MOIREI\Vouchers;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class Helpers
 {
@@ -79,5 +80,15 @@ class Helpers
     public static function getModelKey(Model $item, string $prefix = '', string $suffix = ''): string
     {
         return $prefix . $item->getMorphClass() . ':' . $item->getKey() . $suffix;
+    }
+
+    /**
+     * Get model morph class
+     * @return string
+     */
+    public static function getMorphedModel(Model $model): string
+    {
+        $class = $model->getMorphClass();
+        return class_exists($class) ? $class : Relation::getMorphedModel($class);
     }
 }
