@@ -16,11 +16,14 @@ If the voucher is valid, the method will return the voucher model associated wit
 After a voucher is successfully redeemed, this package will fire a `MOIREI\Vouchers\Events\VoucherRedeemed` event. The event contains the redeemer instance and the voucher instance.
 
 To redeem a voucher with multiple items, provide an item to the `redeem` method.
+
 ```php
+use MOIREI\Vouchers\VoucherScheme;
+
 [$product1, $product2] = Product::take(2)->get();
 
 [$voucher] = Vouchers::create([$product1, $product2], 1, [
-    'limit_scheme' => Voucher::LIMIT_ITEM,
+    'limit_scheme' => VoucherScheme::ITEM,
 ]);
 // or
 $voucher = Voucher::make()

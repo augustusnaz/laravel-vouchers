@@ -1,59 +1,69 @@
 {
-    "name": "moirei/laravel-vouchers",
-    "description": "Manage ecommerce vouchers",
-    "keywords": [
-        "moirei",
-        "laravel",
-        "laravel-vouchers",
-        "vouchers",
-        "promocodes",
-        "coupons"
-    ],
-    "homepage": "https://github.com/augustusnaz/laravel-vouchers",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Augustus Okoye",
-            "email": "augustusokoye@moirei.com",
-            "role": "Developer"
-        }
-    ],
-    "require": {
-        "php": "^7.2|^8.1",
-        "illuminate/config": "^7|^8|^9",
-        "illuminate/database": "^7|^8|^9",
-        "illuminate/support": "^7|^8|^9"
-    },
-    "require-dev": {
-        "mockery/mockery": "^1.5",
-        "orchestra/testbench": "^7.5",
-        "phpunit/phpunit": "^9.5"
-    },
-    "autoload": {
-        "psr-4": {
-            "MOIREI\\Vouchers\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "MOIREI\\Vouchers\\Tests\\": "tests"
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/phpunit",
-        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
-    },
-    "config": {
-        "sort-packages": true
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "MOIREI\\Vouchers\\VouchersServiceProvider"
-            ],
-            "aliases": {
-                "Vouchers": "MOIREI\\Vouchers\\Facades\\Vouchers"
-            }
-        }
+  "name": "moirei/laravel-vouchers",
+  "description": "Manage ecommerce vouchers",
+  "keywords": [
+    "moirei",
+    "laravel",
+    "laravel-vouchers",
+    "vouchers",
+    "promocodes",
+    "coupons"
+  ],
+  "homepage": "https://github.com/augustusnaz/laravel-vouchers",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Augustus Okoye",
+      "email": "augustusokoye@moirei.com",
+      "role": "Developer"
     }
+  ],
+  "require": {
+    "php": "^8.1",
+    "illuminate/config": "^8|^9",
+    "illuminate/database": "^8|^9",
+    "illuminate/support": "^8|^9",
+    "laravel/framework": "^8|^9"
+  },
+  "require-dev": {
+    "laravel/legacy-factories": "^1.3",
+    "mockery/mockery": "^1.5",
+    "orchestra/testbench": "^7.5",
+    "pestphp/pest": "^1.21",
+    "pestphp/pest-plugin-laravel": "^1.2",
+    "phpunit/phpunit": "^9.5",
+    "spatie/pest-plugin-test-time": "^1.1",
+    "thled/pest-plugin-shorthands": "^1.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "MOIREI\\Vouchers\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MOIREI\\Vouchers\\Tests\\": "tests",
+      "Database\\Factories\\MOIREI\\Vouchers\\Models\\": "tests\\database\\factories"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest",
+    "test:coverage": "vendor/bin/pest --coverage"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "MOIREI\\Vouchers\\VouchersServiceProvider"
+      ],
+      "aliases": {
+        "Vouchers": "MOIREI\\Vouchers\\Facades\\Vouchers"
+      }
+    }
+  }
 }

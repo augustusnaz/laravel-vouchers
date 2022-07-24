@@ -5,18 +5,23 @@ namespace MOIREI\Vouchers\Traits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use InvalidArgumentException;
-use MOIREI\Vouchers\Facades\Vouchers;
-use MOIREI\Vouchers\Models\Voucher;
 use MOIREI\Vouchers\Events\VoucherRedeemed;
 use MOIREI\Vouchers\Exceptions\VoucherExpired;
-use MOIREI\Vouchers\Exceptions\VoucherIsInvalid;
 use MOIREI\Vouchers\Exceptions\VoucherAlreadyRedeemed;
 use MOIREI\Vouchers\Exceptions\VoucherRedeemsExhausted;
 use MOIREI\Vouchers\Exceptions\CannotRedeemVoucher;
+use MOIREI\Vouchers\Facades\Vouchers;
+use MOIREI\Vouchers\Models\Voucher;
+use MOIREI\Vouchers\VoucherScheme;
 
+/**
+ * @property \Illuminate\Support\Collection $vouchers
+ */
 trait CanRedeemVouchers
 {
     /**
+     * Redeem a voucher or voucher code
+     *
      * @param string $code
      * @param \Illuminate\Database\Eloquent\Model|string|null $item
      * @throws \MOIREI\Vouchers\Exceptions\VoucherExpired
@@ -31,7 +36,17 @@ trait CanRedeemVouchers
     {
         $voucher = Vouchers::check($code);
 
-        if (($is_redeemed = $voucher->isRedeemed($this, $item)) && $voucher->isDisposable()) {
+        if (!$voucher->active) {
+            throw new \Exception("Cannot redeem inactive voucher");
+        }
+
+        if ($voucher->limit_scheme->is(VoucherScheme::REDEEMER)) {
+            $is_redeemed = $voucher->isRedeemed($this);
+        } else {
+            $is_redeemed = $voucher->isRedeemed($item);
+        }
+
+        if ($is_redeemed && $voucher->isDisposable()) {
             throw VoucherAlreadyRedeemed::create($voucher);
         }
         if ($is_redeemed) {
@@ -52,8 +67,17 @@ trait CanRedeemVouchers
             throw VoucherExpired::create($voucher);
         }
 
-        $voucher->incrementUse(1, $this, $item);
-        $voucher->save();
+        if ($voucher->limit_scheme->is(VoucherScheme::ITEM)) {
+            // $item is required
+            if (!$item) {
+                throw new InvalidArgumentException("Please provide an item.");
+            }
+            $voucher->incrementModelUse($item);
+        } elseif ($voucher->limit_scheme->is(VoucherScheme::REDEEMER)) {
+            $voucher->incrementModelUse($this);
+        } else {
+            $voucher->incrementUse();
+        }
 
         $this->vouchers()->attach($voucher, [
             'redeemed_at' => now()
@@ -66,6 +90,7 @@ trait CanRedeemVouchers
 
     /**
      * Alias for redeem()
+     * Redeem a voucher or voucher code
      *
      * @param string $code
      * @throws \MOIREI\Vouchers\Exceptions\VoucherExpired
@@ -81,7 +106,8 @@ trait CanRedeemVouchers
     }
 
     /**
-     * Check whether the user instance can redeem this voucher
+     * Check whether the user instance can redeem a voucher or voucher code.
+     *
      * @param Voucher|string $voucher
      * @param \Illuminate\Database\Eloquent\Model|string|null $product
      * @return bool
@@ -96,27 +122,8 @@ trait CanRedeemVouchers
             return false;
         }
 
-        if ($voucher->allowed_users_array) {
-            foreach ($voucher->allowed_users_array as $allowed_users) {
-                if (
-                    $allowed_users['voucherable_type'] === $this->getMorphClass() &&
-                    $allowed_users['voucherable_id'] === $this->getKey()
-                ) return true;
-            }
-            return false;
-        }
-        if ($voucher->disallowed_users_array) {
-            foreach ($voucher->disallowed_users_array as $allowed_users) {
-                if (
-                    $allowed_users['voucherable_type'] === $this->getMorphClass() &&
-                    $allowed_users['voucherable_id'] === $this->getKey()
-                ) return false;
-            }
-        }
-
-        return true;
+        return $voucher->isAllowed($this);
     }
-
 
     /**
      * Get vouchers
@@ -127,8 +134,10 @@ trait CanRedeemVouchers
     {
         return $this->morphToMany(
             config('vouchers.models.vouchers'),
-            'voucherable',
+            'redeemer',
             config('vouchers.tables.redeemer_pivot_table', 'redeemer_voucher'),
+            null,
+            'voucher_id'
         );
     }
 }

@@ -2,7 +2,7 @@
 
 namespace MOIREI\Vouchers\Exceptions;
 
-use MOIREI\Vouchers\Models\Voucher;
+use Illuminate\Database\Eloquent\Model;
 
 class VoucherRedeemsExhausted extends \Exception
 {
@@ -10,12 +10,12 @@ class VoucherRedeemsExhausted extends \Exception
 
     protected $voucher;
 
-    public static function create(Voucher $voucher)
+    public static function create(Model $voucher)
     {
         return new static($voucher);
     }
 
-    public function __construct(Voucher $voucher)
+    public function __construct(Model $voucher)
     {
         $this->voucher = $voucher;
     }

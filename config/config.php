@@ -2,38 +2,42 @@
 
 return [
 
-
     /*
-     * List of characters that will be used for voucher code generation.
+     * Voucher code configuration
      */
-    'characters' => '23456789ABCDEFGHJKLMNPQRSTUVWXYZ',
+    'codes' => [
+        /*
+        * List of characters that will be used for voucher code generation.
+        */
+        'characters' => '23456789ABCDEFGHJKLMNPQRSTUVWXYZ',
 
-    /*
-     * Voucher code prefix.
-     *
-     * Example: foo
-     * Generated Code: foo-AGXF-1NH8
-     */
-    'prefix' => null,
+        /*
+        * Voucher code prefix.
+        *
+        * Example: foo
+        * Generated Code: foo-AGXF-1NH8
+        */
+        'prefix' => null,
 
-    /*
-     * Voucher code suffix.
-     *
-     * Example: foo
-     * Generated Code: AGXF-1NH8-foo
-     */
-    'suffix' => null,
+        /*
+        * Voucher code suffix.
+        *
+        * Example: foo
+        * Generated Code: AGXF-1NH8-foo
+        */
+        'suffix' => null,
 
-    /*
-     * Code mask.
-     * All asterisks will be removed by random characters.
-     */
-    'mask' => '****-****',
+        /*
+        * Code mask.
+        * All asterisks will be removed by random characters.
+        */
+        'mask' => '****-****',
 
-    /*
-     * Separator to be used between prefix, code and suffix.
-     */
-    'separator' => '-',
+        /*
+        * Separator to be used between prefix, code and suffix.
+        */
+        'separator' => '-',
+    ],
 
     /*
      * The user model that belongs to vouchers.
@@ -42,6 +46,7 @@ return [
         'vouchers' => \MOIREI\Vouchers\Models\Voucher::class,
         'users' => \App\Models\User::class,
         'products' => \App\Models\Product::class,
+        'voucher_observer' => \MOIREI\Vouchers\Observers\VoucherObserver::class,
     ],
 
     'tables' => [
@@ -64,5 +69,5 @@ return [
     /*
      * Default reuse limit scheme
      */
-    'default_limit_scheme' => \MOIREI\Vouchers\Models\Voucher::LIMIT_INSTANCE,
+    'default_limit_scheme' => \MOIREI\Vouchers\VoucherScheme::INSTANCE,
 ];

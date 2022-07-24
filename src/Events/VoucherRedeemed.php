@@ -2,8 +2,8 @@
 
 namespace MOIREI\Vouchers\Events;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Queue\SerializesModels;
-use MOIREI\Vouchers\Models\Voucher;
 
 class VoucherRedeemed
 {
@@ -11,10 +11,10 @@ class VoucherRedeemed
 
     public $redeemer;
 
-    /** @var Voucher */
+    /** @var Model */
     public $voucher;
 
-    public function __construct($redeemer, Voucher $voucher)
+    public function __construct($redeemer, Model $voucher)
     {
         $this->redeemer = $redeemer;
         $this->voucher = $voucher;

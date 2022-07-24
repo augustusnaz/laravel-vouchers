@@ -2,11 +2,11 @@
 
 namespace MOIREI\Vouchers\Rules;
 
-use Vouchers;
 use Illuminate\Contracts\Validation\Rule;
 use MOIREI\Vouchers\Exceptions\VoucherExpired;
 use MOIREI\Vouchers\Exceptions\VoucherIsInvalid;
 use MOIREI\Vouchers\Exceptions\VoucherAlreadyRedeemed;
+use MOIREI\Vouchers\Facades\Vouchers;
 
 class Voucher implements Rule
 {
@@ -27,7 +27,7 @@ class Voucher implements Rule
             $voucher = Vouchers::check($value);
 
             // Check if the voucher was already redeemed
-            if (auth()->check() && $voucher->users()->wherePivot('user_id', auth()->id())->exists()) {
+            if (auth()->check() && $voucher->isRedeemed(auth()->user())) {
                 throw VoucherAlreadyRedeemed::create($voucher);
             }
         } catch (VoucherIsInvalid $exception) {

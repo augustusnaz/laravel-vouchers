@@ -1,17 +1,18 @@
 # Usage Limits
 
-Voucher quantity (number of times it may be redeemed), associated items, expiry dates, allowd/denied uses, are optional parametes that may be used to further limit who or what can redeem a voucher.
+Voucher quantity (number of times it may be redeemed), associated items, expiry dates, allowd/denied uses, are optional parameters that may be used to further limit who or what can redeem a voucher.
 
-## Limit Quantity
-
+## Limit quantity
 
 ### Reusable vouchers
 
 ```php
+use MOIREI\Vouchers\VoucherScheme;
+
 $product = Product::find(1);
 
 $attributes = [
-    'limit_scheme' => Voucher::LIMIT_ITEM, // options LIMIT_INSTANCE (default), LIMIT_ITEM, LIMIT_REDEEMER
+    'limit_scheme' => VoucherScheme::ITEM, // options INSTANCE (default), ITEM, REDEEMER
     'quantity' => 2, // 2 uses
 ];
 
@@ -26,7 +27,7 @@ $vouchers = $product->createVouchers(2)
     		->save();
 ```
 
-Using the facade;
+Using the Facade;
 
 ```php
 $vouchers = Vouchers::createReuse($product, 1, $attributes); // reuse once
@@ -36,17 +37,15 @@ $vouchers = Vouchers::createReuse($product, 1, ['quantity' => 3]); // reuse twic
 
 Limit scheme is used to specify whether the total quantity is reduced per instance, associated items or per redeemer.
 
-| Name                     | Description                                                  |
-| ------------------------ | ------------------------------------------------------------ |
-| LIMIT_INSTANCE (default) | Redeems are accumulated on every invocation on the instance. |
-| LIMIT_ITEM            | When one or more items are associated with the Voucher, number of redeems is counted per provided product instance. This means the Voucher may be exhausted for one product and not the other |
-| LIMIT_REDEEMER           | Number of redeems is counted per redeemer. This means the voucher may be exhausted for one redeemer and not the other |
+| Name                 | Description                                                  |
+| -------------------- | ------------------------------------------------------------ |
+| `INSTANCE` (default) | Redeems are accumulated on every invocation on the instance. |
+| `ITEM`               | When one or more items are associated with the Voucher, number of redeems is counted per provided product instance. This means the Voucher may be exhausted for one product and not the other |
+| `REDEEMER`           | Number of redeems is counted per redeemer. This means the voucher may be exhausted for one redeemer and not the other |
 
+## Limit redeemers
 
-
-## Limit Redeemers
-
-Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. Altimately specifies who may or may not have the ability to redeem a voucher instance.
+Making vouchers redeemable by any model type means it can be used with multi-auth users/guests/resellers type setup. If in any case you need to generate vouchers only redeemable by a certain user group/locale/etc., you can use the allow_models/deny_models attributes. Ultimately specifies who may or may not have the ability to redeem a voucher instance.
 
 ```php
 $product = Product::find(1);
@@ -62,7 +61,7 @@ $attributes = [
     'allow_models' => [ $user1, $guest1 ],
     'deny_models' => [ $user2 ],
     'quantity' => 2,
-    'limit_scheme' => Voucher::LIMIT_REDEEMER, // each redeemer may only redeem the voucher(s) twice
+    'limit_scheme' => VoucherScheme::REDEEMER, // each redeemer may only redeem the voucher(s) twice
 ];
 $vouchers = Vouchers::create($product, 5, $attributes);
 ```
@@ -73,13 +72,13 @@ These attributes can be passed even after the voucher is created. You can also u
 
 ```php
 $vouchers->allow([$user1])
+    	 ->allow($user2, ...)
     	 ->deny([$guest1]);
 ```
 
 **Notes**
 
-* The `allow_models` and `deny_models` attributes mentioned above are actually saved as `can_redeem` and `cannot_redeem` internally. They are intercepted on boot creating and updating.
-
+- The `allow_models` and `deny_models` attributes mentioned above are actually saved as `can_redeem` and `cannot_redeem` internally. They are intercepted on boot creating and updating.
 
 ## Expiry
 
@@ -93,6 +92,7 @@ $product = Product::find(1);
 $voucher = Voucher::make([
     'expires_at' => today()->addDays(7),
 ])->setItems($product)->save();
+
 // or
 $product->createVouchers(2, [
     'expires_at' => today()->addDays(7),
@@ -106,6 +106,7 @@ $voucher = Voucher::make()->days(7)->save();
 ```
 
 Vouchers may be expired instantly with
+
 ```php
 $voucher->expire()->save();
 // or give it a date
@@ -123,7 +124,23 @@ $voucher->pruneExpired(now()->yesterday());
 ```
 
 
-## Specify Items
+
+## Active dates
+
+Active dates make it possible to create vouchers ahead of time. An example usage is generate vouchers for seasonal sales. 
+
+```php
+$product->createVouchers(2, [
+    'active_date' => today()->addDays(7), // christmas sale
+]);
+```
+
+Can used with `expires_at` to create vouchers with limited use window.
+
+
+
+## Limit by specific items
+
 The provided products below are the only items the voucher maybe redeemed against.
 
 ```php

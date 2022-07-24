@@ -2,6 +2,8 @@
 
 namespace MOIREI\Vouchers;
 
+use Illuminate\Support\Str;
+
 class VoucherGenerator
 {
     protected $characters;
@@ -68,7 +70,7 @@ class VoucherGenerator
         $characters = collect(str_split($this->characters));
 
         for ($i = 0; $i < $length; $i++) {
-            $mask = str_replace_first('*', $characters->random(1)->first(), $mask);
+            $mask = Str::replaceFirst('*', $characters->random(1)->first(), $mask);
         }
 
         $code .= $mask;
@@ -92,5 +94,4 @@ class VoucherGenerator
     {
         return $this->suffix !== null ? $this->separator . $this->suffix : '';
     }
-
 }
