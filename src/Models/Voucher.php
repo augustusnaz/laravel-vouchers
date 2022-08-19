@@ -949,7 +949,9 @@ class Voucher extends Model
             if ($count++ == 0) {
                 $query->where($where);
             } else {
-                $query->orWhere($where);
+                $query->orWhere(function($query) use($where){
+                    $query->where($where);
+                });
             }
         }
 
