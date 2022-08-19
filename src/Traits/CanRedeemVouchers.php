@@ -118,7 +118,7 @@ trait CanRedeemVouchers
             $voucher = Vouchers::check($voucher);
         }
 
-        if ($product !== null) {
+        if ($product !== null && $voucher->limit_scheme->is(VoucherScheme::ITEM)) {
             if ($product instanceof Model || is_string($product)) {
                 $product = [$product];
             }
