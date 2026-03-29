@@ -109,17 +109,20 @@ trait CanRedeemVouchers
      * Check whether the user instance can redeem a voucher or voucher code.
      *
      * @param Voucher|string $voucher
-     * @param \Illuminate\Database\Eloquent\Model|string|null $product
+     * @param Model|array|string|null $product
      * @return bool
      */
-    public function canRedeem(Voucher|string $voucher, Model|string|null $product = null): bool
+    public function canRedeem(Voucher|string $voucher, Model|array|string|null $product = null): bool
     {
         if (is_string($voucher)) {
             $voucher = Vouchers::check($voucher);
         }
 
-        if ($product && !$voucher->isItem($product)) {
-            return false;
+        if ($product !== null && $voucher->limit_scheme->is(VoucherScheme::ITEM)) {
+            if ($product instanceof Model || is_string($product)) {
+                $product = [$product];
+            }
+            return $voucher->isAnyItem($product);
         }
 
         return $voucher->isAllowed($this);
